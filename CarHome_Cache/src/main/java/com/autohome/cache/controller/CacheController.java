@@ -3,14 +3,12 @@ package com.autohome.cache.controller;
 import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.autohome.cache.exception.CacheException;
 import com.autohome.cache.service.CacheService;
+import com.autohome.common.dto.ZsetDto;
 import com.autohome.common.vo.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -20,7 +18,7 @@ import java.util.concurrent.TimeUnit;
  * @create: 2020-08-06 10:35
  */
 @RestController
-@RequestMapping("/cache/api")
+@RequestMapping("cache/api")
 @Slf4j
 public class CacheController {
     @Autowired
@@ -29,7 +27,7 @@ public class CacheController {
     //实现常用的操作
     @SentinelResource(fallback = "saveError")
     @PostMapping("/savestr.do")
-    public R saveStr2Redis(@RequestParam String key, @RequestParam long times, @RequestParam String value) throws CacheException {
+    public R saveStr2Redis(String key, long times, String value) throws CacheException {
         return R.ok(service.saveStr2Redis(key, times, value));
     }
 
@@ -50,8 +48,8 @@ public class CacheController {
     }
 
     @PostMapping("/savezset.do")
-    public R saveScoreSet2Redis(String key, long times, double score, String value) throws CacheException {
-        return R.ok(service.saveScoreSet2Redis(key, times, score, value));
+    public R saveScoreSet2Redis( @RequestBody ZsetDto zsetDto) throws CacheException {
+        return R.ok(service.saveScoreSet2Redis(zsetDto.getKey(), zsetDto.getTimes(),zsetDto.getScore() , zsetDto.getValue()));
     }
 
     @PostMapping("/savehash.do")
@@ -71,7 +69,7 @@ public class CacheController {
 
     @GetMapping("/getlist.do")
     public R getListFromRedis(String key) {
-        return R.ok(service.getListFromRedis(key));
+        return R.ok(service.getListFromRedis(key).toString());
     }
 
     @GetMapping("/checkset.do")
@@ -81,18 +79,19 @@ public class CacheController {
 
     @GetMapping("/getset.do")
     public R getSetFromRedis(String key) {
-        return R.ok(service.getSetFromRedis(key));
+        return R.ok(service.getSetFromRedis(key).toString());
     }
 
     /**
      * zset 自动排序
-     * @param key 指定zset的 key 名
+     *
+     * @param key  指定zset的 key 名
      * @param flag 0 升序，非0 降序
-     * @return
+     * @return 注意封装进去的数据必须为 string 否则 ribbon 请求服务时只能拿到集合的第1个
      */
     @GetMapping("/getzset.do")
     public R getScoreSetFromRedis(String key, int flag) {
-        return R.ok(service.getScoreSetFromRedis(key, flag));
+        return R.ok(service.getScoreSetFromRedis(key, flag).toString());
     }
 
     @GetMapping("/gethash2.do")
@@ -107,12 +106,12 @@ public class CacheController {
 
     @GetMapping("/gethash1.do")
     public R gethashFromRedis(String key) {
-        return R.ok(service.gethashFromRedis(key));
+        return R.ok(service.gethashFromRedis(key).toString());
     }
 
     @GetMapping("/gethashstr.do")
     public R gethashStrFromRedis(String key) {
-        return R.ok(service.gethashStrFromRedis(key));
+        return R.ok(service.gethashStrFromRedis(key).toString());
     }
 
 

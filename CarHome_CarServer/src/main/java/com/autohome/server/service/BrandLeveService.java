@@ -1,8 +1,6 @@
 package com.autohome.server.service;
 
-import com.autohome.common.dto.BrandLevDto;
-import com.autohome.common.dto.GetCarByBrandIdDto;
-import com.autohome.common.dto.GetCarDto;
+import com.autohome.common.dto.*;
 import com.autohome.common.vo.R;
 
 import java.util.List;
@@ -12,29 +10,14 @@ import java.util.List;
  */
 
 public interface BrandLeveService {
-    /**
-     * @return BrandLevDto
-     */
-    R getAllBrandLevel();
 
-    /**
-     * @param bid
-     * @return GetCarByBrandIdDto
-     */
+    R getAllBrandLevDto();
+
     R getCarByBrandId(Integer bid);
 
-    /**
-     * @param bid
-     * @return BrandLevDto
-     */
-    R  getBrandById(Integer bid);
+    R GetBrandById(Integer bid);
 
-    /**
-     * @param type
-     * @param model_level
-     * @param bid
-     * @return GetCarDto
-     */
-    R getBrandIdAndModelLevelAndType(Integer type, String model_level,Integer bid);
+    R getBrandIdAndModelLevelAndType(Integer type, String model_level, Integer bid);
 
+    R leaderboard(Integer bid);
 }

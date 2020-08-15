@@ -50,8 +50,16 @@ public class CacheServiceImpl implements CacheService {
      */
     @Override
     public boolean saveStr2Redis(String key, long expireTimeSeconds, String value) throws CacheException {
-        template.opsForValue().set(key, value, expireTimeSeconds, TimeUnit.SECONDS);
-        return true;
+        try {
+            template.opsForValue().set(key, value);
+            if (expireTimeSeconds > 0) {
+                template.opsForValue().set(key, value, expireTimeSeconds, TimeUnit.SECONDS);
+            }
+            return true;
+        } catch (Exception e) {
+            log.error("存储异常");
+            throw new CacheException("存储异常" + e.getMessage());
+        }
     }
 
     @Override
@@ -65,11 +73,10 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public boolean saveSet2Redis(String key, long expireTimeSeconds, String... values) throws CacheException {
         try {
-            if (expireTimeSeconds <= 0) {
-                expireTimeSeconds = -1;
-            }
             template.opsForSet().add(key, values);
-            template.opsForSet().getOperations().expire(key, expireTimeSeconds, TimeUnit.SECONDS);
+            if (expireTimeSeconds > 0) {
+                template.opsForSet().getOperations().expire(key, expireTimeSeconds, TimeUnit.SECONDS);
+            }
             return true;
         } catch (Exception e) {
             log.error("存储异常");
@@ -80,11 +87,10 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public boolean saveScoreSet2Redis(String key, long expireTimeSeconds, double score, String value) throws CacheException {
         try {
-            if (expireTimeSeconds <= 0) {
-                expireTimeSeconds = -1;
-            }
             template.opsForZSet().add(key, value, score);
-            template.opsForSet().getOperations().expire(key, expireTimeSeconds, TimeUnit.SECONDS);
+            if (expireTimeSeconds > 0) {
+                template.opsForSet().getOperations().expire(key, expireTimeSeconds, TimeUnit.SECONDS);
+            }
             return true;
         } catch (Exception e) {
             log.error("存储异常");
@@ -109,10 +115,10 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public boolean saveList2Redis(String key, long expireTimeSeconds, Object o) throws CacheException {
         try {
-            if (expireTimeSeconds <= 0) {
-                expireTimeSeconds = -1;
+            template.opsForList().rightPush(key, o);
+            if (expireTimeSeconds > 0) {
+                template.opsForList().set(key, expireTimeSeconds, o);
             }
-            template.opsForList().set(key, expireTimeSeconds, o);
             return true;
         } catch (Exception e) {
             log.error("存储异常");
@@ -123,11 +129,10 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public boolean saveSet2Redis(String key, long expireTimeSeconds, Object o) throws CacheException {
         try {
-            if (expireTimeSeconds <= 0) {
-                expireTimeSeconds = -1;
-            }
             template.opsForSet().add(key, o);
-            template.opsForSet().getOperations().expire(key, expireTimeSeconds, TimeUnit.SECONDS);
+            if (expireTimeSeconds > 0) {
+                template.opsForSet().getOperations().expire(key, expireTimeSeconds, TimeUnit.SECONDS);
+            }
             return true;
         } catch (Exception e) {
             log.error("存储异常");
@@ -135,14 +140,22 @@ public class CacheServiceImpl implements CacheService {
         }
     }
 
+    /**
+     * 存储 ScoreSet 类型的数据到 redis
+     * @param key
+     * @param expireTimeSeconds
+     * @param score
+     * @param o
+     * @return
+     * @throws CacheException
+     */
     @Override
     public boolean saveScoreSet2Redis(String key, long expireTimeSeconds, double score, Object o) throws CacheException {
         try {
             template.opsForZSet().add(key, o, score);
-            if (expireTimeSeconds <= 0) {
-                expireTimeSeconds = -1;
+            if (expireTimeSeconds > 0) {
+                template.opsForSet().getOperations().expire(key, expireTimeSeconds, TimeUnit.SECONDS);
             }
-            template.opsForSet().getOperations().expire(key, expireTimeSeconds, TimeUnit.SECONDS);
             return true;
         } catch (Exception e) {
             log.error("存储异常");
@@ -167,10 +180,10 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public boolean saveStr2Redis(String key, long expireTimeSeconds, Object o) throws CacheException {
         try {
-            if (expireTimeSeconds < -1) {
-                expireTimeSeconds = -1;
+            template.opsForValue().set(key, o);
+            if (expireTimeSeconds > 0) {
+                template.opsForValue().set(key, o, expireTimeSeconds, TimeUnit.SECONDS);
             }
-            template.opsForValue().set(key, o, expireTimeSeconds, TimeUnit.SECONDS);
             return true;
         } catch (Exception e) {
             log.error("存储异常");
@@ -241,28 +254,15 @@ public class CacheServiceImpl implements CacheService {
     }
 
     /**
+     * 获取 SortedSet 有序集合
+     *
      * @param key
      * @param flag 0 升序，非0 降序
      * @return
      */
     @Override
-    public Map<String, Double> getScoreSetFromRedis(String key, int flag) {
-        Map<String, Double> map = new HashMap<>();
-        Set<Object> objects = null;
-        if (flag != 0) {
-            // 降序
-            objects = template.opsForZSet().reverseRange(key, 0, -1);
-        } else {
-            // 升序
-            objects = template.opsForZSet().range(key, 0, -1);
-        }
-
-        if (objects != null) {
-            for (Object o : objects) {
-                map.put((String) o, template.opsForZSet().score(key, o));
-            }
-        }
-        return map;
+    public Set<Object> getScoreSetFromRedis(String key, int flag) {
+        return flag == 0 ? template.opsForZSet().range(key, 0, -1) : template.opsForZSet().reverseRange(key, 0, -1);
     }
 
     @Override
